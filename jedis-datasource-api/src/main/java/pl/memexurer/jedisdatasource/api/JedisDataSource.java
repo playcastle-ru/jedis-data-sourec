@@ -57,4 +57,11 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
       handler.handle(channel, message);
     }
   }
+
+  @Override
+  public void onPMessage(String pattern, String channel, String message) {
+    for (var handler : handlers) {
+      handler.handle(channel, message);
+    }
+  }
 }
