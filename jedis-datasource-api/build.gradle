@@ -1,0 +1,33 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group 'pl.memexurer'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnlyApi "redis.clients:jedis:4+"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+def targetJavaVersion = 11
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
