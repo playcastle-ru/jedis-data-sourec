@@ -1,12 +1,10 @@
 package pl.memexurer.jedisdatasource.api;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Consumer;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
@@ -19,7 +17,33 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
 
   JedisDataSource(JedisPool pool) {
     this.pool = pool;
-    new Thread(() -> pool.getResource().subscribe(this, "")).start(); //idk how to subscribe without specifying any channels
+
+    var resource = pool.getResource();
+
+    try {
+      var clientField = JedisPubSub.class.getDeclaredField("client");
+      clientField.setAccessible(true);
+
+      clientField.set(this, resource.getConnection());
+    } catch (ReflectiveOperationException throwable) {
+      throw new RuntimeException(throwable);
+    }
+
+    new Thread(() -> {
+      try {
+        var processMethod = JedisPubSub.class.getDeclaredMethod("process");
+        processMethod.setAccessible(true);
+
+        processMethod.invoke(JedisDataSource.this);
+      } catch (ReflectiveOperationException throwable) {
+        throw new RuntimeException(throwable);
+      }
+    }).start();
+  }
+
+  @Override
+  public boolean isSubscribed() {
+    return true;
   }
 
   @Override

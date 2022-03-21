@@ -30,7 +30,7 @@ public class JedisPlugin implements JedisDataSourceProvider {
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
-    this.dataSource = new JedisDataSourceConfiguration("localhost", (short) 6379, "",8, false, 15)
+    this.dataSource = new JedisDataSourceConfiguration("localhost", (short) 6379, "",8, false, 0)
         .create();
   }
 
