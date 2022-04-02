@@ -1,0 +1,3 @@
+name: JedisDataSource
+version: 1.0
+main: pl.memexurer.jedisdatasource.JedisPlugin

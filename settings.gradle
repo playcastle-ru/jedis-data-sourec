@@ -1,4 +1,5 @@
 rootProject.name = 'jedis-data-sourec'
 include 'jedis-datasource-api'
 include 'velocity-plugin'
+include 'bukkit-plugin'
 
