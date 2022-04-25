@@ -5,15 +5,16 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import redis.clients.jedis.BinaryJedisPubSub;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
-public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
+public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jedis> {
   private final JedisPool pool;
 
   private final List<JedisPubSubHandler> handlers = new ArrayList<>();
+  private boolean isSubscribed = true;
 
   JedisDataSource(JedisPool pool) {
     this.pool = pool;
@@ -21,7 +22,7 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
     var resource = pool.getResource();
 
     try {
-      var clientField = JedisPubSub.class.getDeclaredField("client");
+      var clientField = BinaryJedisPubSub.class.getDeclaredField("client");
       clientField.setAccessible(true);
 
       clientField.set(this, resource.getConnection());
@@ -31,7 +32,7 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
 
     new Thread(() -> {
       try {
-        var processMethod = JedisPubSub.class.getDeclaredMethod("process");
+        var processMethod = BinaryJedisPubSub.class.getDeclaredMethod("process");
         processMethod.setAccessible(true);
 
         processMethod.invoke(JedisDataSource.this);
@@ -43,7 +44,7 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
 
   @Override
   public boolean isSubscribed() {
-    return true;
+    return isSubscribed;
   }
 
   @Override
@@ -68,6 +69,8 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
 
   @Override
   public void close() {
+    isSubscribed = false;
+    this.unsubscribe();
     pool.close();
   }
 
@@ -76,16 +79,18 @@ public class JedisDataSource extends JedisPubSub implements DataSource<Jedis> {
   }
 
   @Override
-  public void onMessage(String channel, String message) {
+  public void onMessage(byte[] channel, byte[] message) {
     for (var handler : handlers) {
-      handler.handle(channel, message);
+      handler.handle(new String(channel), message);
     }
   }
 
   @Override
-  public void onPMessage(String pattern, String channel, String message) {
+  public void onPMessage(byte[] pattern, byte[] channel, byte[] message) {
     for (var handler : handlers) {
-      handler.handle(channel, message);
+      handler.handle(new String(channel), message);
     }
   }
+
+
 }
