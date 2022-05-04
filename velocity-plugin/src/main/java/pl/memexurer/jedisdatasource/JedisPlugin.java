@@ -30,8 +30,7 @@ public class JedisPlugin implements JedisDataSourceProvider {
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
-    this.dataSource = new JedisDataSourceConfiguration(System.getenv("REDIS_ADDRESS"), Short.parseShort(System.getenv("REDIS_PORT")), System.getenv("REDIS_PASSWORD"),8, false, 0)
-        .create();
+    this.dataSource = JedisDataSourceConfiguration.createEnv().create();
   }
 
   @Subscribe

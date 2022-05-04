@@ -16,8 +16,7 @@ public class JedisPlugin extends JavaPlugin implements JedisDataSourceProvider {
 
   @Override
   public void onEnable() {
-    this.dataSource = new JedisDataSourceConfiguration("localhost", (short) 6379, "", 8, false, 0)
-        .create();
+    this.dataSource = JedisDataSourceConfiguration.createEnv().create();
   }
 
   @Override

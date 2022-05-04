@@ -32,4 +32,8 @@ public class JedisDataSourceConfiguration {
     JedisPool pool = new JedisPool(config, address, port, timeout, password, useSSL);
     return new JedisDataSource(pool);
   }
+
+  public static JedisDataSourceConfiguration createEnv() {
+    return new JedisDataSourceConfiguration(System.getenv("REDIS_ADDRESS"), Short.parseShort(System.getenv("REDIS_PORT")), System.getenv("REDIS_PASSWORD"),8, false, 0);
+  }
 }
