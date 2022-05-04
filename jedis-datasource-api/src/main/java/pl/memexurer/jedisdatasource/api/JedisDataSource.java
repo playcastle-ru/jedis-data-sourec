@@ -1,15 +1,14 @@
 package pl.memexurer.jedisdatasource.api;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import redis.clients.jedis.BinaryJedisPubSub;
-import redis.clients.jedis.Connection;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Protocol.Command;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jedis> {
@@ -17,8 +16,6 @@ public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jed
 
   private final List<JedisPubSubHandler> handlers = new ArrayList<>();
   private boolean isSubscribed = true;
-
-  private Connection connection;
 
   JedisDataSource(JedisPool pool) {
     this.pool = pool;
@@ -29,7 +26,7 @@ public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jed
       var clientField = BinaryJedisPubSub.class.getDeclaredField("client");
       clientField.setAccessible(true);
 
-      clientField.set(this, connection = resource.getConnection());
+      clientField.set(this, resource.getConnection());
     } catch (ReflectiveOperationException throwable) {
       throw new RuntimeException(throwable);
     }
@@ -82,13 +79,21 @@ public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jed
     this.handlers.add(handler);
   }
 
-  //czy to zadziala? CHUJ WIE XD
   public void subscribe(String... channels) {
-    connection.sendCommand(Command.SUBSCRIBE, channels);
+    super.subscribe(convertToBytes(channels));
   }
 
   public void psubscribe(String... patterns) {
-    connection.sendCommand(Command.PSUBSCRIBE, patterns);
+    super.psubscribe(convertToBytes(patterns));
+  }
+
+  private static byte[][] convertToBytes(String[] strings) {
+    byte[][] data = new byte[strings.length][];
+    for (int i = 0; i < strings.length; i++) {
+      String string = strings[i];
+      data[i] = string.getBytes(Charset.defaultCharset());
+    }
+    return data;
   }
 
   @Override
