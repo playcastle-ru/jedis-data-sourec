@@ -1,8 +1,8 @@
 package pl.memexurer.jedisdatasource.api;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
@@ -14,7 +14,7 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jedis> {
   private final JedisPool pool;
 
-  private final List<JedisPubSubHandler> handlers = new ArrayList<>();
+  private final Map<String, JedisPubSubHandler> handlers = new HashMap<>();
   private boolean isSubscribed = true;
 
   JedisDataSource(JedisPool pool) {
@@ -75,16 +75,17 @@ public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jed
     pool.close();
   }
 
-  public void addHandler(JedisPubSubHandler handler) {
-    this.handlers.add(handler);
-  }
 
-  public void subscribe(String... channels) {
+  public void subscribe(JedisPubSubHandler handler, String... channels) {
     super.subscribe(convertToBytes(channels));
+    for(var channel: channels)
+      this.handlers.put(channel, handler);
   }
 
-  public void psubscribe(String... patterns) {
+  public void psubscribe(JedisPubSubHandler handler, String... patterns) {
     super.psubscribe(convertToBytes(patterns));
+    for(var pattern: patterns)
+      this.handlers.put(pattern, handler);
   }
 
   private static byte[][] convertToBytes(String[] strings) {
@@ -97,16 +98,20 @@ public class JedisDataSource extends BinaryJedisPubSub implements DataSource<Jed
   }
 
   @Override
-  public void onMessage(byte[] channel, byte[] message) {
-    for (var handler : handlers) {
-      handler.handle(new String(channel), message);
+  public void onMessage(byte[] channelRaw, byte[] message) {
+    var channel = new String(channelRaw);
+    var handler = handlers.get(channel);
+    if(handler != null) {
+      handler.handle(channel, message);
     }
   }
 
   @Override
-  public void onPMessage(byte[] pattern, byte[] channel, byte[] message) {
-    for (var handler : handlers) {
-      handler.handle(new String(channel), message);
+  public void onPMessage(byte[] patternRaw, byte[] channel, byte[] message) {
+    var pattern = new String(patternRaw);
+    var handler = handlers.get(pattern);
+    if(handler != null) {
+      handler.handle(pattern, message);
     }
   }
 
