@@ -6,8 +6,6 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
-import java.util.concurrent.ForkJoinPool;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import pl.memexurer.jedisdatasource.api.JedisDataSource;
 import pl.memexurer.jedisdatasource.api.JedisDataSourceConfiguration;
@@ -31,11 +29,11 @@ public class JedisPlugin implements JedisDataSourceProvider {
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
     this.dataSource = JedisDataSourceConfiguration.createEnv().create();
-  }
 
-  @Subscribe
-  public void onProxyShutdown(ProxyShutdownEvent event) {
-    this.dataSource.close();
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      logger.info("Jedis data source is finally shutting down!");
+      JedisPlugin.this.dataSource.close();
+    }));
   }
 
   @Override
